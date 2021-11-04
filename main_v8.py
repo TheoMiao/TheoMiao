@@ -7,13 +7,17 @@ import csv
 from csv import reader
 
 
-def get_data(file):  # ='Grade.csv' Name,Number,Subject,Grade
+def get_data(file):
+    """
+    get data from csv
+    """
+    # ='Grade.csv' Name,Number,Subject,Grade
     # 1. change the list into dict
     # with语句来自动帮我们调用close()
     with open(file, 'r', encoding='utf-8') as csv_file:  # delimiter = {str} ','
         csv_reader = reader(csv_file)
-        data_student = list(csv_reader)
-    return data_student
+        data_csv= list(csv_reader)
+    return data_csv
 
 
 class Person:
@@ -22,10 +26,10 @@ class Person:
 
     # num = 0
 
-    def __init__(self, name, subject, person_id):  # per = Person(name, subject) -> call __init__
+    def __init__(self, name, subject):  # per = Person(name, subject) -> call __init__
         self.name = name
         self.subject = subject
-        self.person_id = person_id
+
         # Person.person_id = self.person_id + 1
         # self.person_id = Person.person_id
 
@@ -75,6 +79,7 @@ class My_DB_Connector:
 
     def connect(self):
 
+
         pass
 
     def close(self):
@@ -101,13 +106,14 @@ class HR(list):
     db = My_DB_Connector()
 
     def load_db(self):
-        students = self.db.query_db_fun('tea_id', 'tea')
-        self.append(Student('a', '2', '2', 3, 4))
-        self.append(Teacher('a', '2', '2', ))
+        # students = self.db.query_db_fun('tea_id', 'tea')
+        # self.append(Student('a', '2', '2', 3, 4))
+        # self.append(Teacher('a', '2', '2', ))
         pass
 
     def load_manual(self, input):
         pass
+
 
     @property
     def students(self):
@@ -267,7 +273,7 @@ class System:
         self.data.read_db()
         # 2. MANAL INPUT
         trrp = input("data")
-        self.data.load_data(trrp,eaefae)
+        self.data.load_data(trrp)
         # 3. write backe to db
         success = self.export_db_tea(self.data)
         if success:
@@ -280,6 +286,7 @@ class System:
         :param: data is a list of teachers
         :return: True is epx successfully
         """
+
         mydb = self.connect_db()
 
         if mydb is None:
@@ -497,7 +504,7 @@ class System:
             student = {'name': name, 'number': student_number, 'subject': subject, 'score': score}
             person_data.append(student)
 
-        self.append_data(person_data, input_type)
+            self.append_data(person_data, input_type)
 
     def show_all_teachers(self):
         for teacher in self.data.teachers:

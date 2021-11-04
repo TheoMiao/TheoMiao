@@ -1,7 +1,6 @@
 import mysql.connector
 from mysql.connector import errorcode
 
-import csv
 from csv import reader
 
 
@@ -29,10 +28,12 @@ class Teacher(Person):
     def __init__(self, name, subject):
         super().__init__(name, subject)
 
-class My_DB_Connector:
+
+class My_DB_Connector(object):
     """
     pack the toll of mysql_connector
     """
+
     _dbconfig = {
         'host': "localhost",
         'user': "ifka",
@@ -40,10 +41,12 @@ class My_DB_Connector:
         'database': "student"
     }
 
+    mydb = None
+
     def connect(self):
         """
 
-        :return: db_cursor
+        :return: mydb
         """
         try:
             mydb = mysql.connector.connect(**self._dbconfig)
@@ -56,28 +59,39 @@ class My_DB_Connector:
                 print(err)
             return False
         else:
-            print("Database load successfully")
-            db_cursor = mydb.cursor()
-            return db_cursor
+            print("Database connect successfully")
+            return mydb
 
     def close(self):
         if self.mydb is not None:
             self.mydb.commit()
             self.mydb.close()
 
-    def query_db_fun(self, name_list, table, where = None):
+    def query_db_read(self, name_list, table, where=None):
         """
-
-        :param name_list:
+        :param where: where clause
+        :param table: table in db
+        :param name_list: query
         :return:
         """
-        db_cursor = self.connect()
-        db_cursor.execute(f"SELECT DISTINCT {name}, {number}, {subject}, {score} FROM stu")
-        stu_row = db_cursor.fetchall()
-
+        mydb = self.connect()
+        if mydb is None:
+            print("Database does not exist")
+        else:
+            db_cursor = mydb.cursor()
+        query = f"SELECT {','.join(name_list)} FROM {table} "
+        if where is not None:
+            query = query + where
+        db_cursor.execute(query)
+        result = db_cursor.fetchall()
         output = []
+        if result is False or len(result) == 0:
+            return output
+        for res in result:
+            output.append({x: y for x, y in zip(name_list, res)})
         self.close()
         return output
+
 
 class HR(list):
     _type = {'teacher': Teacher,
@@ -108,6 +122,7 @@ class HR(list):
             :return: no append_data
                      yes update subject
             """
+
         pass
 
         def update_data(self):
@@ -116,13 +131,43 @@ class HR(list):
             update subject, score
             :return:
             """
+
         pass
 
     def load_db(self):
-        pass
+        input_type = 'teacher'
+        query = ['tea_name', 'tea_subject']
+        # query = ['tea_id', 'tea_name', 'tea_subject']
+        table = 'tea'
+        where = None
+        DB_Connector = My_DB_Connector()
+        row = DB_Connector.query_db_read(query, table)
+        print(row)
+        key = ['name', 'subject']
+        # key = ['person_id', 'name', 'subject']
+        person_data = []
+        for item in range(0, len(row)):
+            person_data.append(dict(zip(key, row[item])))
+        self.append_data(person_data, input_type)
 
-    def load_manual(self,input):
-        pass
+    def load_manual(self, input_type):
+        person_data = []
+
+        if input_type == 'teacher':
+            name = input('please input your name: ')
+            subject = input('please input your subject: ')
+            teacher = {'name': name, 'subject': subject}
+            person_data.append(teacher)
+
+        if input_type == 'student':  # input move out of class
+            name = input('please input your name: ')
+            student_number = input('please input your student number: ')
+            subject = input('please input your subject: ')
+            score = input('please input your score: ')
+            student = {'name': name, 'number': student_number, 'subject': subject, 'score': score}
+            person_data.append(student)
+
+            self.append_data(person_data, input_type)
 
     def append_data(self, person_data, input_type):
         """
@@ -160,7 +205,7 @@ class HR(list):
             new_obj_needed = True
             if input_type == 'student':
                 for student in self:
-                # for student in self_type[input_type]:
+                    # for student in self_type[input_type]:
                     if item["name"] == student.name:
                         student.score[item['subject']] = item['score']
                         new_obj_needed = False
@@ -177,3 +222,60 @@ class HR(list):
     @property
     def teacher(self):
         return [x for x in self if type(x) is Teacher]
+
+
+class System:
+    data = HR()
+
+    def __init__(self):
+        Person.person_id = self.data.max_id + 1
+
+    def run(self):
+        """
+        thread of the process
+        :return:
+        """
+        # 1. db is loaded in to data (HR class)
+        self.data.read_db()
+        # 2. MANAL INPUT
+        trrp = input("data")
+        self.data.load_data(trrp)
+        # 3. write backe to db
+        success = self.export_db_tea(self.data)
+        if success:
+            print('save sucessfully')
+
+    def show_max_person_id_tea(self):
+        max_id = self.query_db_fun(['MAX(tea_id)'], 'tea')
+        print(max_id)
+
+    def show_all_teachers(self):
+        for teacher in self.teachers:
+            print(teacher.name, teacher.subject)
+
+    def show_all_students(self):
+        for student in self.student:
+            print(student.name, student.person_id)
+
+    def find_student_score(self):
+        find_stu = True
+        while find_stu:
+            name = input('please input the name that you want to search for his/her score:')
+            flag = False
+            for student in self.student:
+                if name == student.name:
+                    flag = True
+                    for subject in student.score:
+                        print(subject, student.score[subject])
+            if flag is False:
+                print('there is no {} in classroom {}'.format(name, student.classroom))
+
+            target_student = [x for x in self.data["student"] if x.name == name]  # check
+            if len(target_student) == 0:
+                print("no")
+            else:
+                for subject in target_student[0].score:
+                    print(subject, target_student[0].score[subject])
+            op = input('do you want to search the other person y/n: ')
+            if op == 'n':
+                find_stu = False
